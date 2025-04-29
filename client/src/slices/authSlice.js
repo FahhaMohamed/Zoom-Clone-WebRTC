@@ -29,13 +29,31 @@ const authSlice = createSlice({
       state.user = null;
       state.isAuthenticated = false;
     },
+    checkAuthState: (state) => {
+      const user = JSON.parse(localStorage.getItem("user"));
+      console.log(user?.token);
+      
+      if (user?.token) {
+        state.user = user;
+        state.isAuthenticated = true;
+      } else {
+        state.user = null;
+        state.isAuthenticated = false;
+      }
+    },
     clearError(state) {
       state.error = null;
     },
   },
 });
 
-export const { loginFailed, loginRequest, loginSuccess, logout, clearError } =
-  authSlice.actions;
+export const {
+  loginFailed,
+  loginRequest,
+  loginSuccess,
+  logout,
+  clearError,
+  checkAuthState,
+} = authSlice.actions;
 
 export default authSlice.reducer;
