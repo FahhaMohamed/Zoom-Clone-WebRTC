@@ -15,6 +15,7 @@ const authSlice = createSlice({
       state.loading = true;
       state.error = null;
     },
+
     loginSuccess(state, action) {
       state.user = action.payload;
       state.isAuthenticated = true;
@@ -25,14 +26,28 @@ const authSlice = createSlice({
       state.loading = false;
       state.error = action.payload;
     },
-    logout(state) {
+    logoutUser(state) {
       state.user = null;
       state.isAuthenticated = false;
     },
+    verifyRequest(state) {
+      state.loading = true;
+      state.error = null;
+    },
+    varifySuccess(state) {
+      state.isAuthenticated = true;
+      state.loading = false;
+      state.error = null;
+    },
+    verifyFailed(state, action) {
+      state.loading = false;
+      state.isAuthenticated = false;
+      state.error = action.payload;
+    },
     checkAuthState: (state) => {
       const user = JSON.parse(localStorage.getItem("user"));
-      console.log(user?.token);
       
+
       if (user?.token) {
         state.user = user;
         state.isAuthenticated = true;
@@ -51,9 +66,12 @@ export const {
   loginFailed,
   loginRequest,
   loginSuccess,
-  logout,
+  logoutUser,
   clearError,
   checkAuthState,
+  varifySuccess,
+  verifyFailed,
+  verifyRequest,
 } = authSlice.actions;
 
 export default authSlice.reducer;

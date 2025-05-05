@@ -6,6 +6,10 @@ const RoomSchema = new mongoose.Schema({
     required: true,
     unique: true
   },
+  participantsCount: {
+    type: Number,
+    require: true,
+  },
   host: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

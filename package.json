@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "simple-peer": "^9.11.1",
+    "styled-components": "^6.1.17"
+  }
+}
