@@ -2,6 +2,7 @@ const socketio = require("socket.io");
 const { formatMessage } = require("../utils/messages");
 
 let io;
+let rooms = {};
 
 const initSocket = (server) => {
   io = socketio(server, {
@@ -17,9 +18,24 @@ const initSocket = (server) => {
 
     // join a room
     socket.on("joinRoom", ({ roomId, user }) => {
+      if (rooms[roomId] && rooms[roomId][socket.id]) {
+        return;
+      }
+
       socket.join(roomId);
-      socket.roomId = roomId;
-      socket.user = user;
+
+      if (!rooms[roomId]) {
+        rooms[roomId] = {};
+      }
+
+      rooms[roomId][socket.id] = user;
+
+      // Inform new user of existing users
+      const usersInRoom = Object.entries(rooms[roomId])
+        .filter(([id]) => id !== socket.id)
+        .map(([id, name]) => ({ id, name }));
+
+      socket.emit("all-users", usersInRoom);
 
       // Welcome the current user
       socket.emit(
@@ -27,13 +43,10 @@ const initSocket = (server) => {
         formatMessage("Admin", "Welcome to Video Conference!")
       );
 
-      // Broadcast when a user connects - Server tells to others
-      socket.broadcast
+      // Broadcast when a user connects
+      socket
         .to(roomId)
-        .emit(
-          "message",
-          formatMessage("Admin", `${user.name} has joined the chat`)
-        );
+        .emit("message", formatMessage("Admin", `${user} has joined the room`));
 
       // Send users and room info
       io.to(roomId).emit("roomUsers", {
@@ -43,40 +56,40 @@ const initSocket = (server) => {
 
       // Listen for chat message
       socket.on("chatMessage", (msg) => {
-        const user = socket.user;
-        io.to(socket.roomId).emit("message", formatMessage(user.name, msg));
+        io.to(roomId).emit("message", formatMessage(user, msg));
       });
 
-      //WebRTC signaling
-      socket.on("offer", (data) => {
-        socket.to(data.target).emit("offer", data);
+      // WebRTC signaling
+      socket.on("send-offer", ({ target, offer, caller, name }) => {
+        io.to(target).emit("receive-offer", { offer, caller, name });
       });
 
-      socket.on("answer", (data) => {
-        socket.to(data.target).emit("answer", data);
+      socket.on("send-answer", ({ target, answer }) => {
+        io.to(target).emit("receive-answer", { answer, from: socket.id });
       });
 
-      socket.on("ice-candidate", (data) => {
-        socket.to(data.target).emit("ice-candidate", data.candidate);
+      socket.on("send-ice", ({ target, candidate }) => {
+        io.to(target).emit("receive-ice", { candidate, from: socket.id });
       });
 
       // Disconnect
       socket.on("disconnect", () => {
-        if (socket.roomId) {
-          io.to(socket.roomId).emit(
-            "message",
-            formatMessage(
-              "Admin",
-              `${socket.user?.name || "A user"} has left the chat`
-            )
-          );
-
-          // Send users and room info
-          io.to(socket.roomId).emit("roomUsers", {
-            roomId: socket.roomId,
-            users: getRoomUsers(socket.roomId),
-          });
+        if (rooms[roomId]) {
+          delete rooms[roomId][socket.id];
+          if (Object.keys(rooms[roomId]).length === 0) {
+            delete rooms[roomId];
+          } else {
+            // Notify remaining users about the disconnection
+            socket
+              .to(roomId)
+              .emit(
+                "message",
+                formatMessage("Admin", `${user} has left the room`)
+              );
+            socket.to(roomId).emit("user-left", socket.id);
+          }
         }
+        console.log("Disconnected:", socket.id);
       });
     });
   });
@@ -85,9 +98,8 @@ const initSocket = (server) => {
 const getRoomUsers = (roomId) => {
   const room = io.sockets.adapter.rooms.get(roomId);
   if (!room) return [];
-
   return Array.from(room).map((socketId) => {
-    return io.sockets.sockets.get(socketId).user;
+    return { id: socketId, name: rooms[roomId]?.[socketId] || "Unknown" };
   });
 };
 

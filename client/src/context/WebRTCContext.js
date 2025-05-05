@@ -1,18 +1,10 @@
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { addMessage, updateParticipants } from "../slices/roomSlice";
 import Peer from "simple-peer";
 import io from "socket.io-client";
 
 const WebRTCContext = createContext();
-
 export const WebRTCProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const [peers, setPeers] = useState({});
@@ -26,221 +18,145 @@ export const WebRTCProvider = ({ children }) => {
   const roomId = useSelector((state) => state.room.currentRoom);
   const dispatch = useDispatch();
 
+  // connect socket once
   useEffect(() => {
-    const newSocket = io('http://localhost:5000');
+    const newSocket = io("http://127.0.0.1:5000");
     setSocket(newSocket);
-  
-    return () => {
-      newSocket.disconnect();
-    };
+    return () => newSocket.disconnect();
   }, []);
 
+  // handle socket events
   useEffect(() => {
     if (!socket || !currentUser || !roomId) return;
-  
-    const handleMessage = (message) => dispatch(addMessage(message));
-    const handleRoomUsers = ({ users }) => dispatch(updateParticipants(users));
-  
-    socket.emit('joinRoom', { roomId, user: currentUser });
-    socket.on('message', handleMessage);
-    socket.on('roomUsers', handleRoomUsers);
-    socket.on('offer', handleReceiveCall);
-    socket.on('answer', handleAnswer);
-    socket.on('ice-candidate', handleNewICECandidate);
-  
-    return () => {
-      socket.off('message', handleMessage);
-      socket.off('roomUsers', handleRoomUsers);
-      socket.off('offer', handleReceiveCall);
-      socket.off('answer', handleAnswer);
-      socket.off('ice-candidate', handleNewICECandidate);
-    };
-  }, [socket, currentUser, roomId, dispatch]); 
 
-  const startMedia = async () => {
-    try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
+    socket.emit("joinRoom", { roomId, user: currentUser });
+
+    // chat
+    const onMessage = (message) => dispatch(addMessage(message));
+    socket.on("message", onMessage);
+
+    // participants: when someone joins, call them
+    const onRoomUsers = ({ users }) => {
+      // update Redux / UI
+      dispatch(updateParticipants(users));
+  
+      // For each user, if not me and not already connected, call them:
+      users.forEach(u => {
+        if (u.id !== socket.id && !peersRef.current[u.id]) {
+          callPeer(u.id);
+        }
       });
-      setStream(mediaStream);
-      if (userVideo.current) {
-        userVideo.current.srcObject = mediaStream;
-      }
-    } catch (err) {
-      console.error("Error accessing media devices:", err);
-    }
+    };
+
+    socket.on("roomUsers", onRoomUsers);
+
+    // WebRTC signals
+    socket.on("offer", handleReceiveCall);
+    socket.on("answer", handleAnswer);
+    socket.on("ice-candidate", handleNewICECandidate);
+
+    return () => {
+      socket.off("message", onMessage);
+      socket.off("roomUsers", onRoomUsers);
+      socket.off("offer", handleReceiveCall);
+      socket.off("answer", handleAnswer);
+      socket.off("ice-candidate", handleNewICECandidate);
+    };
+  }, [socket, currentUser, roomId]);
+
+  // get camera/mic
+  const startMedia = async () => {
+    const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    setStream(mediaStream);
+    if (userVideo.current) userVideo.current.srcObject = mediaStream;
   };
 
   const stopMedia = () => {
-    if (stream) {
-      stream.getTracks().forEach((track) => track.stop());
-      setStream(null);
-    }
+    stream?.getTracks().forEach((t) => t.stop());
+    setStream(null);
   };
 
   const toggleAudio = () => {
-    if (stream) {
-      const audioTrack = stream.getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.enabled = !audioTrack.enabled;
-      }
-    }
+    const track = stream?.getAudioTracks()[0];
+    if (track) track.enabled = !track.enabled;
   };
-
   const toggleVideo = () => {
-    if (stream) {
-      const videoTrack = stream.getVideoTracks()[0];
-      if (videoTrack) {
-        videoTrack.enabled = !videoTrack.enabled;
-      }
-    }
+    const track = stream?.getVideoTracks()[0];
+    if (track) track.enabled = !track.enabled;
   };
 
   const shareScreen = async () => {
     if (isScreenSharing) {
-      if (screenStream) {
-        screenStream.getTracks().forEach((track) => track.stop());
-        setScreenStream(null);
-      }
+      screenStream.getTracks().forEach(t => t.stop());
+      setScreenStream(null);
       setIsScreenSharing(false);
       return;
     }
-
-    try {
-      const screenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-      });
-      setScreenStream(screenStream);
-      setIsScreenSharing(true);
-
-      if (screenVideo.current) {
-        screenVideo.current.srcObject = screenStream;
-      }
-
-      // Replace video track for all peers
-      Object.values(peersRef.current).forEach((peer) => {
-        peer.replaceTrack(
-          peer.streams[0].getVideoTracks()[0],
-          screenStream.getVideoTracks()[0],
-          peer.streams[0]
-        );
-      });
-
-      screenStream.getVideoTracks()[0].onended = () => {
-        shareScreen();
-      };
-    } catch (err) {
-      console.error("Error sharing screen:", err);
-    }
+    const sStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+    setScreenStream(sStream);
+    setIsScreenSharing(true);
+    if (screenVideo.current) screenVideo.current.srcObject = sStream;
+    // replace track on each peer
+    Object.values(peersRef.current).forEach(peer => {
+      peer.replaceTrack(
+        stream.getVideoTracks()[0],
+        sStream.getVideoTracks()[0],
+        stream
+      );
+    });
+    sStream.getVideoTracks()[0].onended = () => shareScreen();
   };
 
+  // receive offer
   const handleReceiveCall = useCallback((data) => {
-    const peer = new Peer({
-      initiator: false,
-      trickle: false,
-      stream: isScreenSharing ? screenStream : stream,
-    });
-
-    peer.on("signal", (signal) => {
-      socket.emit("answer", { signal, target: data.from });
-    });
-
-    peer.on("stream", (stream) => {
-      peersRef.current[data.from].stream = stream;
-      setPeers({ ...peersRef.current });
-    });
-
+    const peer = new Peer({ initiator: false, trickle: true, stream });
+    peer.on("signal", (signal) => socket.emit("answer", { signal, target: data.from }));
+    peer.on("stream", (remoteStream) => updateRemoteStream(data.from, remoteStream));
     peer.signal(data.signal);
-
     peersRef.current[data.from] = peer;
     setPeers({ ...peersRef.current });
-  }, [isScreenSharing, screenStream, stream]);
+  }, [stream]);
 
   const handleAnswer = useCallback((data) => {
-    const peer = peersRef.current[data.from];
-    if (peer) {
-      peer.signal(data.signal);
-    }
+    peersRef.current[data.from]?.signal(data.signal);
   }, []);
 
   const handleNewICECandidate = useCallback((data) => {
-    const peer = peersRef.current[data.from];
-    if (peer) {
-      peer.addIceCandidate(new RTCIceCandidate(data));
-    }
+    peersRef.current[data.from]?.addIceCandidate(new RTCIceCandidate(data.candidate));
   }, []);
 
+  // initiate call
   const callPeer = useCallback((socketId) => {
-    const peer = new Peer({
-      initiator: true,
-      trickle: false,
-      stream: isScreenSharing ? screenStream : stream,
-    });
-
-    peer.on("signal", (signal) => {
-      socket.emit("offer", { signal, target: socketId });
-    });
-
-    peer.on("stream", (stream) => {
-      peersRef.current[socketId].stream = stream;
-      setPeers({ ...peersRef.current });
-    });
-
-    peer.on("ice-candidate", (candidate) => {
-      socket.emit("ice-candidate", { candidate, target: socketId });
-    });
-
+    const peer = new Peer({ initiator: true, trickle: true, stream });
+    peer.on("signal", (signal) => socket.emit("offer", { signal, target: socketId }));
+    peer.on("stream", (remoteStream) => updateRemoteStream(socketId, remoteStream));
+    peer.on("iceCandidate", (candidate) => socket.emit("ice-candidate", { candidate, target: socketId }));
     peersRef.current[socketId] = peer;
     setPeers({ ...peersRef.current });
-  }, [socket, isScreenSharing, screenStream, stream]);
+  }, [stream]);
+
+  const updateRemoteStream = (id, remoteStream) => {
+    peersRef.current[id].stream = remoteStream;
+    setPeers({ ...peersRef.current });
+  };
 
   const leaveCall = () => {
-    if (stream) {
-      stream.getTracks().forEach((track) => track.stop());
-      setStream(null);
-    }
-    if (screenStream) {
-      screenStream.getTracks().forEach((track) => track.stop());
-      setScreenStream(null);
-    }
-    Object.values(peersRef.current).forEach((peer) => peer.destroy());
+    stopMedia();
+    screenStream?.getTracks().forEach(t => t.stop());
+    Object.values(peersRef.current).forEach(p => p.destroy());
     peersRef.current = {};
     setPeers({});
     setIsScreenSharing(false);
   };
 
-  const sendMessage = (message) => {
-    if (socket && message.trim()) {
-      socket.emit("chatMessage", message.trim());
-    }
+  const sendMessage = (text) => {
+    if (socket && text) socket.emit("chatMessage", text);
   };
 
   return (
-    <WebRTCContext.Provider
-      value={{
-        socket,
-        peers,
-        stream,
-        screenStream,
-        isScreenSharing,
-        userVideo,
-        screenVideo,
-        startMedia,
-        stopMedia,
-        toggleAudio,
-        toggleVideo,
-        shareScreen,
-        callPeer,
-        leaveCall,
-        sendMessage,
-      }}
-    >
+    <WebRTCContext.Provider value={{ socket, peers, stream, screenStream, isScreenSharing, userVideo, screenVideo, startMedia, stopMedia, toggleAudio, toggleVideo, shareScreen, callPeer, leaveCall, sendMessage }}>
       {children}
     </WebRTCContext.Provider>
   );
 };
-
-export const useWebRTC = () => {
-  return useContext(WebRTCContext);
-};
+export const useWebRTC = () => useContext(WebRTCContext);
