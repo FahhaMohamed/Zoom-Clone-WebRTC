@@ -43,7 +43,7 @@ function HomePage() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-900 text-gray-100">
       {/* Header */}
-      <header className="bg-gray-800 p-4 flex justify-between items-center border-b border-gray-700">
+      <header className="bg-gray-800 p-3 flex justify-between items-center border-b border-gray-700">
         <div className="flex items-center space-x-2">
           <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
             <svg

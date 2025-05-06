@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { replace, useNavigate, useParams } from "react-router-dom";
 import io from "socket.io-client";
 import {
   FaMicrophone,
@@ -15,9 +15,12 @@ import {
   FaCompress,
   FaTimes,
 } from "react-icons/fa";
+import "../styles/RoomPage.module.css";
 
 export default function RoomPage() {
+  const navigate = useNavigate();
   const { id } = useParams();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [roomID, userName] = id.split("&");
   const localVideoRef = useRef(null);
   const localStream = useRef(null);
@@ -43,6 +46,11 @@ export default function RoomPage() {
     setTimeout(() => {
       setNotifications((prev) => prev.filter((n) => n.id !== id));
     }, 3000);
+  };
+
+  const handleLeftRoom = (e) => {
+    e.preventDefault();
+    navigate("/home", { replace: true });
   };
 
   useEffect(() => {
@@ -424,7 +432,7 @@ export default function RoomPage() {
       : participantStates[id]?.video !== false;
 
     return (
-      <div className="relative w-full h-full">
+      <div className="video-container">
         <video
           key={id}
           autoPlay
@@ -435,14 +443,12 @@ export default function RoomPage() {
               video.srcObject = stream;
             }
           }}
-          className={`w-full h-full object-contain ${
-            !showVideo ? "hidden" : ""
-          }`}
+          className={`video-element ${!showVideo ? "hidden" : ""}`}
         />
         {!showVideo && (
-          <div className="absolute inset-0 bg-gray-800 flex items-center justify-center">
+          <div className="video-off-overlay">
             <div className="text-center">
-              <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-2">
+              <div className="avatar-placeholder flex-center">
                 {name.charAt(0).toUpperCase()}
               </div>
               <p className="text-sm">
@@ -482,10 +488,27 @@ export default function RoomPage() {
       {/* Main header */}
       <header className="bg-gray-800 py-2 px-4 flex justify-between items-center border-b border-gray-700">
         <div className="flex items-center space-x-4">
-          <h1 className="text-xl font-semibold">Video Conference</h1>
+          <div className="flex items-center space-x-2 p-4">
+            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v8a2 2 0 01-2 2h-2a2 2 0 01-2-2V6z" />
+              </svg>
+            </div>
+            <h1 className="text-xl font-bold">VideoConnect</h1>
+          </div>
           <span className="text-sm bg-gray-700 px-2 py-1 rounded">
-            {roomID}
+            <strong>Room ID</strong> {roomID}
           </span>
+          <FaCopy
+            size={20}
+            onClick={copyRoomID}
+            style={{ cursor: "pointer" }}
+          />
         </div>
         <div className="flex items-center space-x-4">
           <button
@@ -505,7 +528,7 @@ export default function RoomPage() {
             <FaComments />
           </button>
           <button
-            onClick={() => (window.location.href = "/")}
+            onClick={() => setShowLogoutConfirm(true)}
             className="p-2 rounded-full bg-red-600 hover:bg-red-700"
           >
             <FaSignOutAlt />
@@ -606,7 +629,7 @@ export default function RoomPage() {
               </div>
 
               {/* Other participants at bottom */}
-              <div className="h-24 bg-gray-900 bg-opacity-80 p-2 flex space-x-2 overflow-x-auto">
+              <div className="h-24 bg-gray-900 bg-opacity-80 p-2 flex justify-center space-x-2 overflow-x-auto">
                 {/* Local video thumbnail */}
                 <div
                   className={`relative w-32 h-full cursor-pointer rounded-md overflow-hidden ${
@@ -728,15 +751,19 @@ export default function RoomPage() {
                   }`}
                 >
                   <div
-                    className={`max-w-xs p-3 rounded-lg ${
+                    className={`max-w-xs p-3 rounded-tl-xl  ${
                       msg.sender === userName
-                        ? "bg-blue-600"
+                        ? "bg-blue-600 rounded-tr-xl rounded-bl-xl"
                         : msg.sender === "Admin"
-                        ? "bg-gray-600"
-                        : "bg-gray-700"
+                        ? "bg-gray-600 rounded-tr-xl rounded-br-xl"
+                        : "bg-gray-700 rounded-tr-xl rounded-br-xl"
                     }`}
                   >
-                    <div className="font-semibold text-sm">{msg.sender}</div>
+                    {msg.sender === userName ? (
+                      <div className="font-semibold text-sm">You</div>
+                    ) : (
+                      <div className="font-semibold text-sm">{msg.sender}</div>
+                    )}
                     <div className="text-sm">{msg.text}</div>
                     <div className="text-xs text-gray-300 mt-1">{msg.time}</div>
                   </div>
@@ -769,21 +796,15 @@ export default function RoomPage() {
       <footer className="bg-gray-800 py-3 px-6 border-t border-gray-700">
         <div className="flex justify-center space-x-4">
           <button
-            onClick={toggleAudio}
-            className={`p-3 rounded-full ${
-              audioEnabled
+            onClick={() => setShowChat(!showChat)}
+            className={`p-3 pl-5 pr-5 rounded-full ${
+              !showChat
                 ? "bg-gray-700 hover:bg-gray-600"
-                : "bg-red-500 hover:bg-red-600"
+                : "bg-blue-600 hover:bg-blue-700"
             } flex flex-col items-center`}
           >
-            {audioEnabled ? (
-              <FaMicrophone size={20} />
-            ) : (
-              <FaMicrophoneSlash size={20} />
-            )}
-            <span className="text-xs mt-1">
-              {audioEnabled ? "Mute" : "Unmute"}
-            </span>
+            <FaComments />
+            <span className="text-xs mt-1">Chat</span>
           </button>
 
           <button
@@ -823,14 +844,63 @@ export default function RoomPage() {
           </button>
 
           <button
-            onClick={() => (window.location.href = "/")}
-            className="p-3 rounded-full bg-red-600 hover:bg-red-700 flex flex-col items-center"
+            onClick={() => setShowLogoutConfirm(true)}
+            className="p-3 rounded-full bg-red-700 hover:bg-red-800 flex flex-col items-center"
           >
             <FaSignOutAlt size={20} />
             <span className="text-xs mt-1">Leave</span>
           </button>
         </div>
       </footer>
+
+      {/* leave- popup */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+          <div className="bg-gray-800 rounded-xl shadow-2xl border border-gray-700 p-6 max-w-sm w-full">
+            <div className="flex items-start justify-between mb-4">
+              <h3 className="text-xl font-bold">Confirmation!!!</h3>
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            <p className="text-gray-300 mb-6">
+              Are you sure, you want to leave the room?
+            </p>
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="px-4 py-2 border border-gray-600 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLeftRoom}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+              >
+                Leave
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
