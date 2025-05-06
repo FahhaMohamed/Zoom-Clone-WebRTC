@@ -1,63 +1,92 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-const initialState = {
-  user: null,
-  isAuthenticated: false,
-  loading: false,
-  error: null,
-};
-
 const authSlice = createSlice({
   name: "auth",
-  initialState,
+  initialState: {
+    loading: false,
+    isAuthenticated: false,
+    user: null,
+  },
   reducers: {
     loginRequest(state) {
-      state.loading = true;
-      state.error = null;
+      return {
+        ...state,
+        loading: true,
+      };
     },
-
-    loginSuccess(state, action) {
-      state.user = action.payload;
-      state.isAuthenticated = true;
-      state.loading = false;
-      state.error = null;
+    loginSuccess(action) {
+      return {
+        loading: false,
+        isAuthenticated: true,
+        user: action.payload,
+      };
     },
     loginFailed(state, action) {
-      state.loading = false;
-      state.error = action.payload;
+      return {
+        ...state,
+        loading: false,
+        error: action.payload,
+      };
     },
-    logoutUser(state) {
-      state.user = null;
-      state.isAuthenticated = false;
+    registerRequest(state) {
+      return {
+        ...state,
+        loading: true,
+      };
     },
-    verifyRequest(state) {
-      state.loading = true;
-      state.error = null;
+    registerSuccess(action) {
+      return {
+        loading: false,
+        isAuthenticated: true,
+        user: action.payload,
+      };
     },
-    varifySuccess(state) {
-      state.isAuthenticated = true;
-      state.loading = false;
-      state.error = null;
+    registerFailed(state, action) {
+      return {
+        ...state,
+        loading: false,
+        error: action.payload,
+      };
     },
-    verifyFailed(state, action) {
-      state.loading = false;
-      state.isAuthenticated = false;
-      state.error = action.payload;
+    profileRequest(state) {
+      return {
+        ...state,
+        loading: true,
+      };
     },
-    checkAuthState: (state) => {
-      const user = JSON.parse(localStorage.getItem("user"));
-      
+    profileSuccess(action) {
+      return {
+        loading: false,
+        isAuthenticated: true,
+        user: action.payload,
+      };
+    },
+    profileFailed(state, action) {
+      return {
+        ...state,
+        loading: false,
+        error: action.payload,
+      };
+    },
+    logoutSuccess() {
+      return {
+        loading: false,
+        isAuthenticated: false,
+        user: null,
+      };
+    },
 
-      if (user?.token) {
-        state.user = user;
-        state.isAuthenticated = true;
-      } else {
-        state.user = null;
-        state.isAuthenticated = false;
-      }
+    logoutFail(state, action) {
+      return {
+        ...state,
+        error: action.payload,
+      };
     },
     clearError(state) {
-      state.error = null;
+      return {
+        ...state,
+        error: null,
+      };
     },
   },
 });
@@ -66,12 +95,15 @@ export const {
   loginFailed,
   loginRequest,
   loginSuccess,
-  logoutUser,
   clearError,
-  checkAuthState,
-  varifySuccess,
-  verifyFailed,
-  verifyRequest,
+  registerFailed,
+  registerRequest,
+  registerSuccess,
+  profileFailed,
+  profileRequest,
+  profileSuccess,
+  logoutFail,
+  logoutSuccess
 } = authSlice.actions;
 
 export default authSlice.reducer;

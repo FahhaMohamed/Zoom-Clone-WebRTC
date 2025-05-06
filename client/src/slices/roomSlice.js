@@ -1,52 +1,35 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-const initialState = {
-  currentRoom: null,
-  participants: [],
-  messages: [],
-  loading: false,
-  error: null,
-};
-
 const roomSlice = createSlice({
   name: "room",
-  initialState,
+  initialState: {
+    loading: false,
+    room: null,
+  },
   reducers: {
     joinRoomRequest(state) {
-      state.loading = true;
-      state.error = null;
+      return {
+        ...state,
+        loading: true,
+      };
     },
     joinRoomSuccess(state, action) {
-      state.currentRoom = action.payload.roomId;
-      state.participants = action.payload.participants;
-      state.loading = false;
-      state.error = null;
+      return {
+        loading: false,
+        room: action.payload,
+      };
     },
     joinRoomFailed(state, action) {
-      state.loading = false;
-      state.error = action.payload;
-    },
-    leaveRoom(state) {
-      state.currentRoom = null;
-      state.participants = [];
-      state.messages = [];
-    },
-    addMessage(state, action) {
-      state.messages.push(state.payload);
-    },
-    updateParticipants(state, action) {
-      state.participants = action.payload;
+      return {
+        ...state,
+        loading: false,
+        error: action.payload,
+      };
     },
   },
 });
 
-export const {
-  joinRoomFailed,
-  joinRoomRequest,
-  joinRoomSuccess,
-  leaveRoom,
-  addMessage,
-  updateParticipants,
-} = roomSlice.actions;
+export const { joinRoomFailed, joinRoomRequest, joinRoomSuccess } =
+  roomSlice.actions;
 
 export default roomSlice.reducer;
