@@ -443,8 +443,12 @@ export default function RoomPage() {
               video.srcObject = stream;
             }
           }}
-          className={`video-element ${!showVideo ? "hidden" : ""}`}
+          className={`video-element rounded-t-xl rounded-b-xl ${
+            !showVideo ? "hidden" : ""
+          }`}
         />
+        
+        <span className="">{name}{name === userName ? " (You)" : ""}</span>
         {!showVideo && (
           <div className="video-off-overlay">
             <div className="text-center">
@@ -588,15 +592,15 @@ export default function RoomPage() {
         >
           {/* Full screen view */}
           {fullScreenVideo && (
-            <div className="flex-1 flex flex-col bg-black">
+            <div className="flex-1 flex flex-col bg-gray-900">
               {/* Main video area */}
               <div className="flex-1 relative">
                 {fullScreenVideo === "local" ? (
                   <div className="w-full h-full flex items-center justify-center">
                     {renderVideo(localStream.current, "local", userName, true)}
-                    <div className="absolute bottom-4 left-4 bg-black bg-opacity-50 px-3 py-1 rounded-full">
+                    {/* <div className="absolute bottom-4 left-4 bg-white bg-opacity-20 px-3 py-1 rounded-full">
                       {userName} (You)
-                    </div>
+                    </div> */}
                     <button
                       onClick={() => toggleFullScreen("local")}
                       className="absolute top-4 right-4 bg-black bg-opacity-50 p-2 rounded-full hover:bg-opacity-70"
@@ -613,9 +617,9 @@ export default function RoomPage() {
                           className="w-full h-full flex items-center justify-center"
                         >
                           {renderVideo(stream, id, name)}
-                          <div className="absolute bottom-4 left-4 bg-black bg-opacity-50 px-3 py-1 rounded-full">
+                          {/* <div className="absolute bottom-4 left-4 bg-black bg-opacity-50 px-3 py-1 rounded-full">
                             {name}
-                          </div>
+                          </div> */}
                           <button
                             onClick={() => toggleFullScreen(id)}
                             className="absolute top-4 right-4 bg-black bg-opacity-50 p-2 rounded-full hover:bg-opacity-70"
@@ -629,7 +633,7 @@ export default function RoomPage() {
               </div>
 
               {/* Other participants at bottom */}
-              <div className="h-24 bg-gray-900 bg-opacity-80 p-2 flex justify-center space-x-2 overflow-x-auto">
+              <div className="h-24 bg-gray-900 bg-opacity-80 p-2 flex justify-center space-x-5 overflow-x-auto">
                 {/* Local video thumbnail */}
                 <div
                   className={`relative w-32 h-full cursor-pointer rounded-md overflow-hidden ${
@@ -680,9 +684,9 @@ export default function RoomPage() {
           {/* Grid view */}
           {!fullScreenVideo && (
             <div className="flex-1 p-4 overflow-auto">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4`}>
                 {/* Local video */}
-                <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
+                <div className="ring-2 relative bg-black rounded-lg overflow-hidden aspect-video">
                   {renderVideo(
                     localStream.current,
                     "local-grid",
