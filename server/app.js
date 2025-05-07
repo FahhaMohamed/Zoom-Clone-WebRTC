@@ -6,7 +6,11 @@ const app = express();
 // Middlewares
 app.use(
   cors({
-    origin: [process.env.CLIENT_URL, "http://localhost:3000"],
+    origin: [
+      process.env.CLIENT_URL,
+      "https://videoconnect-production-a37f.up.railway.app",
+      "http://localhost:3000",
+    ],
     credentials: true,
   })
 );

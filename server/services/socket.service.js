@@ -7,7 +7,11 @@ let rooms = {};
 const initSocket = (server) => {
   io = socketio(server, {
     cors: {
-      origin: [process.env.CLIENT_URL, "http://localhost:3000"],
+      origin: [
+        process.env.CLIENT_URL,
+        "https://videoconnect-production-a37f.up.railway.app",
+        "http://localhost:3000",
+      ],
       methods: ["GET", "POST"],
       credentials: true,
     },
