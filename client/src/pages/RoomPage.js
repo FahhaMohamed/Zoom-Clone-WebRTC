@@ -15,7 +15,6 @@ import {
   FaTimes,
 } from "react-icons/fa";
 import "../styles/RoomPage.module.css";
-import popup from "../components/popup";
 
 export default function RoomPage() {
   const navigate = useNavigate();
@@ -27,7 +26,7 @@ export default function RoomPage() {
   const localStream = useRef(null);
   const [remoteStreams, setRemoteStreams] = useState([]);
   const peers = useRef({});
-  const [audioEnabled, setAudioEnabled] = useState(true);
+  const [audioEnabled] = useState(true);
   const [videoEnabled, setVideoEnabled] = useState(true);
   const [screenSharing, setScreenSharing] = useState(false);
   const [screenTrack, setScreenTrack] = useState(null);
@@ -53,6 +52,57 @@ export default function RoomPage() {
   const handleLeftRoom = (e) => {
     e.preventDefault();
     navigate("/home", { replace: true });
+  };
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const createPeer = (targetID, name) => {
+    const peer = new RTCPeerConnection({
+      iceServers: [
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun1.l.google.com:19302" },
+      ],
+    });
+
+    localStream.current.getTracks().forEach((track) => {
+      peer.addTrack(track, localStream.current);
+    });
+
+    peer.onicecandidate = (e) => {
+      if (e.candidate) {
+        socketRef.current.emit("send-ice", {
+          target: targetID,
+          candidate: e.candidate,
+        });
+      }
+    };
+
+    peer.ontrack = (e) => {
+      const remoteStream = e.streams[0];
+      setRemoteStreams((prev) => {
+        const exists = prev.some((stream) => stream.id === targetID);
+        if (!exists) {
+          return [...prev, { stream: remoteStream, name, id: targetID }];
+        }
+        return prev;
+      });
+    };
+
+    peer
+      .createOffer()
+      .then((offer) => peer.setLocalDescription(offer))
+      .then(() => {
+        socketRef.current.emit("send-offer", {
+          target: targetID,
+          offer: peer.localDescription,
+          caller: socketRef.current.id,
+          name: userName,
+          videoEnabled,
+          audioEnabled,
+        });
+      })
+      .catch((err) => console.error("Error creating offer:", err));
+
+    return peer;
   };
 
   useEffect(() => {
@@ -223,7 +273,7 @@ export default function RoomPage() {
 
       socketRef.current.disconnect();
     };
-  }, [roomID, userName]);
+  }, [roomID, userName, createPeer, fullScreenVideo]);
 
   const scrollChatToBottom = () => {
     setTimeout(() => {
@@ -239,56 +289,6 @@ export default function RoomPage() {
       socketRef.current.emit("chatMessage", messageInput);
       setMessageInput("");
     }
-  };
-
-  const createPeer = (targetID, name) => {
-    const peer = new RTCPeerConnection({
-      iceServers: [
-        { urls: "stun:stun.l.google.com:19302" },
-        { urls: "stun:stun1.l.google.com:19302" },
-      ],
-    });
-
-    localStream.current.getTracks().forEach((track) => {
-      peer.addTrack(track, localStream.current);
-    });
-
-    peer.onicecandidate = (e) => {
-      if (e.candidate) {
-        socketRef.current.emit("send-ice", {
-          target: targetID,
-          candidate: e.candidate,
-        });
-      }
-    };
-
-    peer.ontrack = (e) => {
-      const remoteStream = e.streams[0];
-      setRemoteStreams((prev) => {
-        const exists = prev.some((stream) => stream.id === targetID);
-        if (!exists) {
-          return [...prev, { stream: remoteStream, name, id: targetID }];
-        }
-        return prev;
-      });
-    };
-
-    peer
-      .createOffer()
-      .then((offer) => peer.setLocalDescription(offer))
-      .then(() => {
-        socketRef.current.emit("send-offer", {
-          target: targetID,
-          offer: peer.localDescription,
-          caller: socketRef.current.id,
-          name: userName,
-          videoEnabled,
-          audioEnabled,
-        });
-      })
-      .catch((err) => console.error("Error creating offer:", err));
-
-    return peer;
   };
 
   const addPeer = (offer, callerID, name) => {
