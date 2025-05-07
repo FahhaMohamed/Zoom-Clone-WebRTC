@@ -13,7 +13,8 @@ import {
 
 import { setConfig } from "./setConfig";
 
-const API_URL = "https://videoconnectserver-production.up.railway.app/api/v1/auth";
+const API_URL =
+  "https://videoconnectserver-production.up.railway.app/api/v1/auth";
 
 export const login = (email, password) => async (dispatch) => {
   dispatch(loginRequest());
@@ -24,6 +25,8 @@ export const login = (email, password) => async (dispatch) => {
         console.log("TOKEN : ", res.data.token);
         dispatch(loginSuccess(res.data.user));
         localStorage.setItem("token", res.data.token);
+        localStorage.setItem("user", res.data.user.name);
+        localStorage.setItem("email", res.data.user.email);
         return <b>Login successful!</b>;
       },
       error: (err) => {
@@ -45,6 +48,8 @@ export const register = (name, email, password) => async (dispatch) => {
           console.log("TOKEN : ", res.data.token);
           dispatch(loginSuccess(res.data.user));
           localStorage.setItem("token", res.data.token);
+          localStorage.setItem("user", res.data.user.name);
+          localStorage.setItem("email", res.data.user.email);
           return <b>Signup successful!</b>;
         },
         error: (err) => {
