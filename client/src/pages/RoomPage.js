@@ -1,8 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
-import { replace, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import io from "socket.io-client";
 import {
-  FaMicrophone,
   FaMicrophoneSlash,
   FaVideo,
   FaVideoSlash,
@@ -16,6 +15,7 @@ import {
   FaTimes,
 } from "react-icons/fa";
 import "../styles/RoomPage.module.css";
+import popup from "../components/popup";
 
 export default function RoomPage() {
   const navigate = useNavigate();
@@ -40,7 +40,7 @@ export default function RoomPage() {
   const chatContainerRef = useRef(null);
   const [notifications, setNotifications] = useState([]);
   const [participantStates, setParticipantStates] = useState({});
-  const [videoDimensions, setVideoDimensions] = useState({}); // Track video dimensions
+  const [videoDimensions, setVideoDimensions] = useState({});
 
   const addNotification = (message) => {
     const id = Date.now();
@@ -60,7 +60,6 @@ export default function RoomPage() {
 
     const init = async () => {
       try {
-        // First check if permissions are granted
         const cameraPermission = await navigator.permissions.query({
           name: "camera",
         });
@@ -78,7 +77,6 @@ export default function RoomPage() {
           return;
         }
 
-        // Get user media with error handling
         localStream.current = await navigator.mediaDevices
           .getUserMedia({
             video: true,
@@ -338,22 +336,6 @@ export default function RoomPage() {
       .catch((err) => console.error("Error handling offer:", err));
 
     return peer;
-  };
-
-  const toggleAudio = () => {
-    if (localStream.current) {
-      const newState = !audioEnabled;
-      localStream.current.getAudioTracks().forEach((track) => {
-        track.enabled = newState;
-      });
-      setAudioEnabled(newState);
-
-      socketRef.current.emit("state-change", {
-        roomId: roomID,
-        videoEnabled,
-        audioEnabled: newState,
-      });
-    }
   };
 
   const toggleVideo = () => {
@@ -770,7 +752,7 @@ export default function RoomPage() {
 
         {/* Chat sidebar */}
         {showChat && (
-          <div className="w-1/3 bg-gray-800 border-l border-gray-700 flex flex-col">
+          <div className="w-1/4 bg-gray-800 border-l border-gray-700 flex flex-col">
             <div className="p-4 border-b border-gray-700">
               <h2 className="font-semibold">Chat</h2>
             </div>
@@ -889,53 +871,14 @@ export default function RoomPage() {
       </footer>
 
       {/* leave- popup */}
-      {showLogoutConfirm && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <div className="bg-gray-800 rounded-xl shadow-2xl border border-gray-700 p-6 max-w-sm w-full">
-            <div className="flex items-start justify-between mb-4">
-              <h3 className="text-xl font-bold">Confirmation!!!</h3>
-              <button
-                onClick={() => setShowLogoutConfirm(false)}
-                className="text-gray-400 hover:text-white"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-
-            <p className="text-gray-300 mb-6">
-              Are you sure, you want to leave the room?
-            </p>
-
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setShowLogoutConfirm(false)}
-                className="px-4 py-2 border border-gray-600 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleLeftRoom}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-              >
-                Leave
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {showLogoutConfirm &&
+        popup(
+          "Confirmation!!!",
+          "Are you sure, you want to leave the room?",
+          "Leave",
+          () => setShowLogoutConfirm(false),
+          handleLeftRoom
+        )}
     </div>
   );
 }

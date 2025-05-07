@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { logout } from "../services/auth.service";
 import { createRoom, joinRoom } from "../services/room.service";
+import popup from "../components/popup";
 
 function HomePage() {
   const [activeTab, setActiveTab] = useState("home");
@@ -38,6 +39,7 @@ function HomePage() {
     if (!isAuthenticated) {
       navigate("/login");
     }
+    console.log(user);
   }, [isAuthenticated, navigate, room, user]);
 
   return (
@@ -96,9 +98,7 @@ function HomePage() {
         {activeTab === "home" && (
           <div className="w-full max-w-md space-y-8">
             <div className="text-center">
-              <h2 className="text-3xl font-bold mb-2">
-                Welcome, {profile.name.split(" ")[0]}!
-              </h2>
+              <h2 className="text-3xl font-bold mb-2">Welcome!</h2>
               <p className="text-gray-400">Start or join a video meeting</p>
             </div>
 
@@ -251,27 +251,6 @@ function HomePage() {
                 </svg>
               </button>
             </div>
-
-            {/* <form onSubmit={handleJoinRoom} className="space-y-6">
-              <div>
-                <label className="block text-gray-300 mb-2">Meeting ID</label>
-                <input
-                  type="text"
-                  value={roomId}
-                  onChange={(e) => setRoomId(e.target.value)}
-                  placeholder="Enter meeting ID"
-                  required
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              
-              <button 
-                type="submit" 
-                className="w-full bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-              >
-                Join Meeting
-              </button>
-            </form> */}
           </div>
         )}
 
@@ -390,53 +369,14 @@ function HomePage() {
       </footer>
 
       {/* Logout Confirmation Modal */}
-      {showLogoutConfirm && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <div className="bg-gray-800 rounded-xl shadow-2xl border border-gray-700 p-6 max-w-sm w-full">
-            <div className="flex items-start justify-between mb-4">
-              <h3 className="text-xl font-bold">Confirm Logout</h3>
-              <button
-                onClick={() => setShowLogoutConfirm(false)}
-                className="text-gray-400 hover:text-white"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-
-            <p className="text-gray-300 mb-6">
-              Are you sure you want to logout from your account?
-            </p>
-
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setShowLogoutConfirm(false)}
-                className="px-4 py-2 border border-gray-600 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {showLogoutConfirm &&
+        popup(
+          "Confirm Logout",
+          "Are you sure you want to logout from your account?",
+          "Logout",
+          () => setShowLogoutConfirm(false),
+          handleLogout
+        )}
     </div>
   );
 }

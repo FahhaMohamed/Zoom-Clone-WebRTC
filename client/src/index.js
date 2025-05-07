@@ -1,12 +1,8 @@
-import React, { StrictMode } from "react";
+import React from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";
 import App from "./App";
 import reportWebVitals from "./reportWebVitals";
-import TestPage from "./test/TestPage";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
-import TestHomePage from "./test/TestHomePage";
-import TestAuthPage from "./test/TestAuthPage";
 import { Provider } from "react-redux";
 import { store } from "./store/store";
 import { Toaster } from "react-hot-toast";
