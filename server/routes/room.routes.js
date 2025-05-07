@@ -42,8 +42,8 @@ router.post("/create", auth, async (req, res) => {
 });
 
 // Get room info
-router.get("/:roomId", auth, async (req, res) => {
-  const { name } = req.body;
+router.post("/info", auth, async (req, res) => {
+  const { name, roomId } = req.body;
 
   const username = req.user.name;
 
@@ -57,7 +57,7 @@ router.get("/:roomId", auth, async (req, res) => {
   }
 
   try {
-    let room = await Room.findOne({ roomId: req.params.roomId })
+    let room = await Room.findOne({ roomId })
       .select("-__v")
       .populate("host participants", "name email");
     if (!room)

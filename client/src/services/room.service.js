@@ -7,19 +7,20 @@ import {
 } from "../slices/roomSlice";
 import { setConfig } from "./setConfig";
 
-const API_URL = "https://videoconnectserver-production.up.railway.app/api/v1/room";
+const API_URL =
+  "https://videoconnectserver-production.up.railway.app/api/v1/room";
 
 export const createRoom =
   (roomId, participantsCount, navigate) => async (dispatch) => {
     const token = localStorage.getItem("token");
     if (!token) {
+      localStorage.clear();
       toast.error("You must be logged in to create a room.");
+      navigate("/login", { replace: true });
       return;
     }
 
     dispatch(joinRoomRequest());
-
-    // const user = localStorage.getItem("user");
 
     try {
       await toast.promise(
@@ -53,7 +54,9 @@ export const createRoom =
 export const joinRoom = (roomId, navigate) => async (dispatch) => {
   const token = localStorage.getItem("token");
   if (!token) {
+    localStorage.clear();
     toast.error("You must be logged in to create a room.");
+    navigate("/login", { replace: true });
     return;
   }
 
@@ -81,4 +84,39 @@ export const joinRoom = (roomId, navigate) => async (dispatch) => {
       }
     );
   } catch (error) {}
+};
+
+export const verifyRoom = (roomId, name, navigate, setLoading) => async () => {
+  if (!roomId || !name) {
+    setLoading(false);
+    toast.error("Room not found");
+    navigate("/home", { replace: true });
+  }
+
+  const token = localStorage.getItem("token");
+  if (!token) {
+    localStorage.clear();
+    setLoading(false);
+    toast.error("You must be logged in to create a room.");
+    navigate("/login", { replace: true });
+    return;
+  }
+
+  try {
+    const res = await axios.post(
+      `${API_URL}/${roomId}`,
+      { roomId, name },
+      setConfig(token)
+    );
+    setLoading(false);
+    if (res.data.status === false) {
+      setLoading(false);
+      toast.error(res.data.message);
+      navigate("/home", { replace: true });
+    }
+  } catch (error) {
+    setLoading(false);
+    toast.error("Room not found");
+    navigate("/home", { replace: true });
+  }
 };
