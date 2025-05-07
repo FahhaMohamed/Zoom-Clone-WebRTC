@@ -29,6 +29,9 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
+  "browser": {
+    "wrtc": false
+  },
   "eslintConfig": {
     "extends": [
       "react-app",
