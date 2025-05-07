@@ -15,9 +15,13 @@ import {
   FaTimes,
 } from "react-icons/fa";
 import "../styles/RoomPage.module.css";
+import { useDispatch } from "react-redux";
+import { verifyRoom } from "../services/room.service";
+import LoadingWithFooter from "../components/loadingIndicator";
 
 export default function RoomPage() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const videoRefs = useRef({});
   const { id } = useParams();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -40,6 +44,17 @@ export default function RoomPage() {
   const [notifications, setNotifications] = useState([]);
   const [participantStates, setParticipantStates] = useState({});
   const [videoDimensions, setVideoDimensions] = useState({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+
+    dispatch(verifyRoom(roomID, userName, navigate))
+      .catch(() => {})
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [dispatch, navigate, roomID, userName]);
 
   const addNotification = (message) => {
     const id = Date.now();
@@ -109,7 +124,9 @@ export default function RoomPage() {
 
   useEffect(() => {
     try {
-      socketRef.current = io("https://videoconnectserver-production.up.railway.app");
+      socketRef.current = io(
+        "https://videoconnectserver-production.up.railway.app"
+      );
     } catch (error) {
       console.log(error);
     }
@@ -480,7 +497,9 @@ export default function RoomPage() {
     );
   };
 
-  return (
+  return loading ? (
+    <LoadingWithFooter />
+  ) : (
     <div className="flex flex-col h-screen bg-gray-900 text-white">
       {/* Notifications */}
       <div className="fixed inset-0 flex items-end justify-center pointer-events-none z-50 mb-20">
