@@ -13,12 +13,13 @@ A real-time video conferencing application built with React, Node.js, and WebRTC
 - Video/audio chat
 - Screen share
 - Text chat
+- Mute/unmute audio controls
 - Stop/play video controls
 
 ## Features
 
 🎥 **Real-time video calls** using WebRTC  
-🎤 **Video controls** (stop/play)  
+🎤 **Audio controls** (mute/unmute)  
 🖥️ **Screen sharing**  
 💬 **In-call chat messaging**  
 🔒 **Room-based access control**  
