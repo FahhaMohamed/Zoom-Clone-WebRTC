@@ -7,7 +7,7 @@ import {
 } from "../slices/roomSlice";
 import { setConfig } from "./setConfig";
 
-const API_URL = "http://localhost:5000/api/v1/room";
+const API_URL = "https://videoconnectserver-production.up.railway.app/api/v1/room";
 
 export const createRoom =
   (roomId, participantsCount, navigate) => async (dispatch) => {

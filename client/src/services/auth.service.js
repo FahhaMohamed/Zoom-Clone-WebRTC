@@ -13,7 +13,7 @@ import {
 
 import { setConfig } from "./setConfig";
 
-const API_URL = "http://localhost:5000/api/v1/auth";
+const API_URL = "https://videoconnectserver-production.up.railway.app/api/v1/auth";
 
 export const login = (email, password) => async (dispatch) => {
   dispatch(loginRequest());

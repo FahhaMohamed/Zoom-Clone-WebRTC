@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import io from "socket.io-client";
 import {
@@ -54,59 +54,65 @@ export default function RoomPage() {
     navigate("/home", { replace: true });
   };
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const createPeer = (targetID, name) => {
-    const peer = new RTCPeerConnection({
-      iceServers: [
-        { urls: "stun:stun.l.google.com:19302" },
-        { urls: "stun:stun1.l.google.com:19302" },
-      ],
-    });
-
-    localStream.current.getTracks().forEach((track) => {
-      peer.addTrack(track, localStream.current);
-    });
-
-    peer.onicecandidate = (e) => {
-      if (e.candidate) {
-        socketRef.current.emit("send-ice", {
-          target: targetID,
-          candidate: e.candidate,
-        });
-      }
-    };
-
-    peer.ontrack = (e) => {
-      const remoteStream = e.streams[0];
-      setRemoteStreams((prev) => {
-        const exists = prev.some((stream) => stream.id === targetID);
-        if (!exists) {
-          return [...prev, { stream: remoteStream, name, id: targetID }];
-        }
-        return prev;
+  const createPeer = useCallback(
+    (targetID, name) => {
+      const peer = new RTCPeerConnection({
+        iceServers: [
+          { urls: "stun:stun.l.google.com:19302" },
+          { urls: "stun:stun1.l.google.com:19302" },
+        ],
       });
-    };
 
-    peer
-      .createOffer()
-      .then((offer) => peer.setLocalDescription(offer))
-      .then(() => {
-        socketRef.current.emit("send-offer", {
-          target: targetID,
-          offer: peer.localDescription,
-          caller: socketRef.current.id,
-          name: userName,
-          videoEnabled,
-          audioEnabled,
+      localStream.current.getTracks().forEach((track) => {
+        peer.addTrack(track, localStream.current);
+      });
+
+      peer.onicecandidate = (e) => {
+        if (e.candidate) {
+          socketRef.current.emit("send-ice", {
+            target: targetID,
+            candidate: e.candidate,
+          });
+        }
+      };
+
+      peer.ontrack = (e) => {
+        const remoteStream = e.streams[0];
+        setRemoteStreams((prev) => {
+          const exists = prev.some((stream) => stream.id === targetID);
+          if (!exists) {
+            return [...prev, { stream: remoteStream, name, id: targetID }];
+          }
+          return prev;
         });
-      })
-      .catch((err) => console.error("Error creating offer:", err));
+      };
 
-    return peer;
-  };
+      peer
+        .createOffer()
+        .then((offer) => peer.setLocalDescription(offer))
+        .then(() => {
+          socketRef.current.emit("send-offer", {
+            target: targetID,
+            offer: peer.localDescription,
+            caller: socketRef.current.id,
+            name: userName,
+            videoEnabled,
+            audioEnabled,
+          });
+        })
+        .catch((err) => console.error("Error creating offer:", err));
+
+      return peer;
+    },
+    [videoEnabled, audioEnabled, userName]
+  );
 
   useEffect(() => {
-    socketRef.current = io("http://localhost:5000");
+    try {
+      socketRef.current = io("https://videoconnectserver-production.up.railway.app");
+    } catch (error) {
+      console.log(error);
+    }
 
     const init = async () => {
       try {

@@ -43,14 +43,25 @@ router.post("/create", auth, async (req, res) => {
 
 // Get room info
 router.get("/:roomId", auth, async (req, res) => {
+  const { name } = req.body;
+
+  const username = req.user.name;
+
+  if (!name) {
+    return res
+      .status(400)
+      .json({ status: false, message: "Please enter name" });
+  }
+  if (name !== username) {
+    return res.status(400).json({ status: false, message: "Invalid user" });
+  }
+
   try {
     let room = await Room.findOne({ roomId: req.params.roomId })
       .select("-__v")
       .populate("host participants", "name email");
     if (!room)
       return res.status(404).json({ status: false, message: "Room not found" });
-
-    const username = req.user.name;
 
     console.log("user : ", room);
     res.status(200).json({
