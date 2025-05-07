@@ -19,6 +19,7 @@ import "../styles/RoomPage.module.css";
 
 export default function RoomPage() {
   const navigate = useNavigate();
+  const videoRefs = useRef({});
   const { id } = useParams();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [roomID, userName] = id.split("&");
@@ -35,10 +36,11 @@ export default function RoomPage() {
   const [showChat, setShowChat] = useState(false);
   const [messages, setMessages] = useState([]);
   const [messageInput, setMessageInput] = useState("");
-  const [fullScreenVideo, setFullScreenVideo] = useState(null);
+  const [fullScreenVideo, setFullScreenVideo] = useState("local");
   const chatContainerRef = useRef(null);
   const [notifications, setNotifications] = useState([]);
   const [participantStates, setParticipantStates] = useState({});
+  const [videoDimensions, setVideoDimensions] = useState({}); // Track video dimensions
 
   const addNotification = (message) => {
     const id = Date.now();
@@ -106,7 +108,6 @@ export default function RoomPage() {
         });
       } catch (err) {
         console.error("Error initializing media:", err);
-
         return;
       }
     };
@@ -166,6 +167,12 @@ export default function RoomPage() {
           const newStates = { ...prev };
           delete newStates[socketId];
           return newStates;
+        });
+
+        setVideoDimensions((prev) => {
+          const newDims = { ...prev };
+          delete newDims[socketId];
+          return newDims;
         });
       }
     };
@@ -426,13 +433,24 @@ export default function RoomPage() {
     setFullScreenVideo(fullScreenVideo === id ? null : id);
   };
 
+  const handleVideoLoadedMetadata = (id, e) => {
+    const video = e.target;
+    videoRefs.current[id] = video;
+
+    const { videoWidth, videoHeight } = video;
+    setVideoDimensions((prev) => ({
+      ...prev,
+      [id]: { width: videoWidth, height: videoHeight },
+    }));
+  };
+
   const renderVideo = (stream, id, name, isLocal = false) => {
     const showVideo = isLocal
       ? videoEnabled
       : participantStates[id]?.video !== false;
 
     return (
-      <div className="video-container">
+      <div className="video-container w-full h-full relative">
         <video
           key={id}
           autoPlay
@@ -443,19 +461,28 @@ export default function RoomPage() {
               video.srcObject = stream;
             }
           }}
-          className={`video-element rounded-t-xl rounded-b-xl ${
+          onLoadedMetadata={(e) => handleVideoLoadedMetadata(id, e)}
+          className={`video-element w-full h-full object-cover rounded-t-xl rounded-b-xl ${
             !showVideo ? "hidden" : ""
           }`}
+          style={{
+            aspectRatio: videoDimensions[id]
+              ? `${videoDimensions[id].width}/${videoDimensions[id].height}`
+              : "16/9",
+          }}
         />
-        
-        <span className="">{name}{name === userName ? " (You)" : ""}</span>
+
+        <span className="absolute bottom-2 left-2 bg-black bg-opacity-50 px-2 py-1 rounded text-sm">
+          {name}
+          {name === userName ? " (You)" : ""}
+        </span>
         {!showVideo && (
-          <div className="video-off-overlay">
+          <div className="video-off-overlay absolute inset-0 flex items-center justify-center bg-black bg-opacity-70">
             <div className="text-center">
-              <div className="avatar-placeholder flex-center">
+              <div className="avatar-placeholder flex-center w-16 h-16 rounded-full bg-gray-600 flex items-center justify-center text-2xl font-bold">
                 {name.charAt(0).toUpperCase()}
               </div>
-              <p className="text-sm">
+              <p className="text-sm mt-2">
                 {isLocal ? "Your camera is off" : `${name}'s camera is off`}
               </p>
             </div>
@@ -592,20 +619,26 @@ export default function RoomPage() {
         >
           {/* Full screen view */}
           {fullScreenVideo && (
-            <div className="flex-1 flex flex-col bg-gray-900">
-              {/* Main video area */}
-              <div className="flex-1 relative">
+            <div className="flex-1 flex bg-gray-900">
+              {/* Main video area - takes 80% width */}
+              <div className="w-4/5 h-full flex items-center justify-center p-2 relative">
                 {fullScreenVideo === "local" ? (
-                  <div className="w-full h-full flex items-center justify-center">
+                  <div
+                    className="relative h-full"
+                    style={{
+                      aspectRatio: videoDimensions["local"]
+                        ? `${videoDimensions["local"].width}/${videoDimensions["local"].height}`
+                        : "16/9",
+                      maxWidth: "100%",
+                      maxHeight: "100%",
+                    }}
+                  >
                     {renderVideo(localStream.current, "local", userName, true)}
-                    {/* <div className="absolute bottom-4 left-4 bg-white bg-opacity-20 px-3 py-1 rounded-full">
-                      {userName} (You)
-                    </div> */}
                     <button
                       onClick={() => toggleFullScreen("local")}
-                      className="absolute top-4 right-4 bg-black bg-opacity-50 p-2 rounded-full hover:bg-opacity-70"
+                      className="absolute top-4 right-4 bg-black bg-opacity-70 p-2 rounded-full hover:bg-opacity-90"
                     >
-                      <FaCompress />
+                      <FaCompress size={18} />
                     </button>
                   </div>
                 ) : (
@@ -614,17 +647,21 @@ export default function RoomPage() {
                       id === fullScreenVideo && (
                         <div
                           key={id}
-                          className="w-full h-full flex items-center justify-center"
+                          className="relative h-full"
+                          style={{
+                            aspectRatio: videoDimensions["local"]
+                              ? `${videoDimensions["local"].width}/${videoDimensions["local"].height}`
+                              : "16/9",
+                            maxWidth: "100%",
+                            maxHeight: "100%",
+                          }}
                         >
                           {renderVideo(stream, id, name)}
-                          {/* <div className="absolute bottom-4 left-4 bg-black bg-opacity-50 px-3 py-1 rounded-full">
-                            {name}
-                          </div> */}
                           <button
                             onClick={() => toggleFullScreen(id)}
-                            className="absolute top-4 right-4 bg-black bg-opacity-50 p-2 rounded-full hover:bg-opacity-70"
+                            className="absolute top-4 right-4 bg-black bg-opacity-70 p-2 rounded-full hover:bg-opacity-90"
                           >
-                            <FaCompress />
+                            <FaCompress size={18} />
                           </button>
                         </div>
                       )
@@ -632,12 +669,14 @@ export default function RoomPage() {
                 )}
               </div>
 
-              {/* Other participants at bottom */}
-              <div className="h-24 bg-gray-900 bg-opacity-80 p-2 flex justify-center space-x-5 overflow-x-auto">
+              {/* Thumbnail sidebar - takes 20% width with smooth scrolling */}
+              <div className="w-1/5 h-full bg-gray-900 bg-opacity-90 border-l border-gray-700 overflow-y-auto p-2 flex flex-col space-y-3">
                 {/* Local video thumbnail */}
                 <div
-                  className={`relative w-32 h-full cursor-pointer rounded-md overflow-hidden ${
-                    fullScreenVideo === "local" ? "ring-4 ring-blue-500" : ""
+                  className={`relative aspect-video cursor-pointer rounded-lg overflow-hidden transition-all ${
+                    fullScreenVideo === "local"
+                      ? "ring-2 ring-blue-500"
+                      : "hover:ring-1 hover:ring-gray-500"
                   }`}
                   onClick={() => toggleFullScreen("local")}
                 >
@@ -648,33 +687,29 @@ export default function RoomPage() {
                     true
                   )}
                   {!videoEnabled && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                      <FaVideoSlash />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-60">
+                      <FaVideoSlash size={16} />
                     </div>
                   )}
-                  <div className="absolute bottom-1 left-1 text-xs bg-black bg-opacity-50 px-1 rounded">
-                    You
-                  </div>
                 </div>
 
                 {/* Remote video thumbnails */}
                 {remoteStreams.map(({ stream, name, id }) => (
                   <div
                     key={id}
-                    className={`relative w-32 h-full cursor-pointer rounded-md overflow-hidden ${
-                      fullScreenVideo === id ? "ring-4 ring-blue-500" : ""
+                    className={`relative aspect-video cursor-pointer rounded-lg overflow-hidden transition-all ${
+                      fullScreenVideo === id
+                        ? "ring-2 ring-blue-500"
+                        : "hover:ring-1 hover:ring-gray-500"
                     }`}
                     onClick={() => toggleFullScreen(id)}
                   >
                     {renderVideo(stream, `thumb-${id}`, name)}
                     {participantStates[id]?.video === false && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                        <FaVideoSlash />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-60">
+                        <FaVideoSlash size={16} />
                       </div>
                     )}
-                    <div className="absolute bottom-1 left-1 text-xs bg-black bg-opacity-50 px-1 rounded">
-                      {name}
-                    </div>
                   </div>
                 ))}
               </div>
@@ -684,18 +719,17 @@ export default function RoomPage() {
           {/* Grid view */}
           {!fullScreenVideo && (
             <div className="flex-1 p-4 overflow-auto">
-              <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4`}>
+              <div
+                className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4`}
+              >
                 {/* Local video */}
-                <div className="ring-2 relative bg-black rounded-lg overflow-hidden aspect-video">
+                <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
                   {renderVideo(
                     localStream.current,
                     "local-grid",
                     userName,
                     true
                   )}
-                  <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 px-2 py-1 rounded text-sm">
-                    {userName} (You)
-                  </div>
                   <button
                     onClick={() => toggleFullScreen("local")}
                     className="absolute top-2 right-2 bg-black bg-opacity-50 p-1 rounded-full hover:bg-opacity-70"
@@ -716,9 +750,6 @@ export default function RoomPage() {
                     className="relative bg-black rounded-lg overflow-hidden aspect-video"
                   >
                     {renderVideo(stream, id, name)}
-                    <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 px-2 py-1 rounded text-sm">
-                      {name}
-                    </div>
                     <button
                       onClick={() => toggleFullScreen(id)}
                       className="absolute top-2 right-2 bg-black bg-opacity-50 p-1 rounded-full hover:bg-opacity-70"
