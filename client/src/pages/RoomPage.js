@@ -13,6 +13,7 @@ import {
   FaExpand,
   FaCompress,
   FaTimes,
+  FaMicrophone,
 } from "react-icons/fa";
 import "../styles/RoomPage.module.css";
 import { useDispatch } from "react-redux";
@@ -30,7 +31,7 @@ export default function RoomPage() {
   const localStream = useRef(null);
   const [remoteStreams, setRemoteStreams] = useState([]);
   const peers = useRef({});
-  const [audioEnabled] = useState(true);
+  const [audioEnabled, setAudioEnabled] = useState(true);
   const [videoEnabled, setVideoEnabled] = useState(true);
   const [screenSharing, setScreenSharing] = useState(false);
   const [screenTrack, setScreenTrack] = useState(null);
@@ -62,6 +63,22 @@ export default function RoomPage() {
     setTimeout(() => {
       setNotifications((prev) => prev.filter((n) => n.id !== id));
     }, 3000);
+  };
+
+  const toggleAudio = () => {
+    if (localStream.current) {
+      const newAudioState = !audioEnabled;
+      localStream.current.getAudioTracks().forEach((track) => {
+        track.enabled = newAudioState;
+      });
+      setAudioEnabled(newAudioState);
+
+      socketRef.current.emit("state-change", {
+        roomId: roomID,
+        videoEnabled,
+        audioEnabled: newAudioState,
+      });
+    }
   };
 
   const handleLeftRoom = (e) => {
@@ -119,7 +136,8 @@ export default function RoomPage() {
 
       return peer;
     },
-    [videoEnabled, audioEnabled, userName]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [ userName]
   );
 
   useEffect(() => {
@@ -296,7 +314,8 @@ export default function RoomPage() {
 
       socketRef.current.disconnect();
     };
-  }, [roomID, userName, createPeer, fullScreenVideo]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomID, userName]);
 
   const scrollChatToBottom = () => {
     setTimeout(() => {
@@ -860,6 +879,24 @@ export default function RoomPage() {
             {videoEnabled ? <FaVideo size={20} /> : <FaVideoSlash size={20} />}
             <span className="text-xs mt-1">
               {videoEnabled ? "Stop Video" : "Start Video"}
+            </span>
+          </button>
+
+          <button
+            onClick={toggleAudio}
+            className={`p-3 rounded-full ${
+              audioEnabled
+                ? "bg-gray-700 hover:bg-gray-600"
+                : "bg-red-500 hover:bg-red-600"
+            } flex flex-col items-center`}
+          >
+            {audioEnabled ? (
+              <FaMicrophone size={20} />
+            ) : (
+              <FaMicrophoneSlash size={20} />
+            )}
+            <span className="text-xs mt-1">
+              {audioEnabled ? "Mute" : "Unmute"}
             </span>
           </button>
 
