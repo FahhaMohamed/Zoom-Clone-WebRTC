@@ -38,6 +38,8 @@ function HomePage() {
     if (!isAuthenticated) {
       navigate("/login");
     }
+    console.log(user);
+    
   }, [isAuthenticated, navigate, room, user]);
 
   return (
@@ -97,7 +99,7 @@ function HomePage() {
           <div className="w-full max-w-md space-y-8">
             <div className="text-center">
               <h2 className="text-3xl font-bold mb-2">
-                Welcome, {profile.name.split(" ")[0]}!
+                Welcome!
               </h2>
               <p className="text-gray-400">Start or join a video meeting</p>
             </div>

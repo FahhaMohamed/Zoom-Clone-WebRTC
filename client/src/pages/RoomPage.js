@@ -1,8 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
-import { replace, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import io from "socket.io-client";
 import {
-  FaMicrophone,
   FaMicrophoneSlash,
   FaVideo,
   FaVideoSlash,
@@ -40,7 +39,7 @@ export default function RoomPage() {
   const chatContainerRef = useRef(null);
   const [notifications, setNotifications] = useState([]);
   const [participantStates, setParticipantStates] = useState({});
-  const [videoDimensions, setVideoDimensions] = useState({}); // Track video dimensions
+  const [videoDimensions, setVideoDimensions] = useState({});
 
   const addNotification = (message) => {
     const id = Date.now();
@@ -60,7 +59,6 @@ export default function RoomPage() {
 
     const init = async () => {
       try {
-        // First check if permissions are granted
         const cameraPermission = await navigator.permissions.query({
           name: "camera",
         });
@@ -78,7 +76,6 @@ export default function RoomPage() {
           return;
         }
 
-        // Get user media with error handling
         localStream.current = await navigator.mediaDevices
           .getUserMedia({
             video: true,
@@ -338,22 +335,6 @@ export default function RoomPage() {
       .catch((err) => console.error("Error handling offer:", err));
 
     return peer;
-  };
-
-  const toggleAudio = () => {
-    if (localStream.current) {
-      const newState = !audioEnabled;
-      localStream.current.getAudioTracks().forEach((track) => {
-        track.enabled = newState;
-      });
-      setAudioEnabled(newState);
-
-      socketRef.current.emit("state-change", {
-        roomId: roomID,
-        videoEnabled,
-        audioEnabled: newState,
-      });
-    }
   };
 
   const toggleVideo = () => {
@@ -770,7 +751,7 @@ export default function RoomPage() {
 
         {/* Chat sidebar */}
         {showChat && (
-          <div className="w-1/3 bg-gray-800 border-l border-gray-700 flex flex-col">
+          <div className="w-1/4 bg-gray-800 border-l border-gray-700 flex flex-col">
             <div className="p-4 border-b border-gray-700">
               <h2 className="font-semibold">Chat</h2>
             </div>
