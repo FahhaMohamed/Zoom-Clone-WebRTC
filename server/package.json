@@ -27,6 +27,7 @@
     "wrtc": "^0.4.7"
   },
   "devDependencies": {
+    "node-pre-gyp": "^0.17.0",
     "nodemon": "^3.1.10"
   }
 }
