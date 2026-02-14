@@ -1,0 +1,11 @@
+# GitLeaks Ignore File
+# These are KNOWN historical findings that have been addressed:
+#   - Credentials have been ROTATED (changed to new values)
+#   - The file has been REMOVED from git tracking
+#   - These fingerprints exist only in OLD commits (git history)
+#
+# Each line is a "fingerprint" — a unique ID for a specific finding
+# Format: commit-hash:file:rule:line
+
+# JWT_SECRET in server/config/config.env (committed 2025-04-29, now rotated)
+560f73553998375b0fa6b90079da47742f760a8d:server/config/config.env:generic-api-key:2
