@@ -1,0 +1,114 @@
+# ============================================================
+# DEPENDENCY SCANNING WORKFLOW
+# ============================================================
+# Purpose: Check if any npm packages (yours or theirs) have known vulnerabilities
+# Tool: npm audit — built into npm, checks against GitHub Advisory Database
+#
+# WHY a separate workflow?
+#   - Different purpose than code quality (frontend-ci) or secret scanning
+#   - Has a SCHEDULE trigger (weekly) — other workflows don't
+#   - Scans both client/ AND server/ dependencies
+# ============================================================
+name: Security — Dependency Scan
+
+# ============================================================
+# TRIGGER
+# ============================================================
+on:
+  # Run when dependency files change
+  push:
+    branches:
+      - main
+      - dev
+    paths:
+      # Only trigger when package files change (new packages added/updated)
+      - "client/package.json"
+      - "client/package-lock.json"
+      - "server/package.json"
+      - "server/package-lock.json"
+      - ".github/workflows/security-dependency-scan.yml"
+
+  pull_request:
+    branches:
+      - main
+      - dev
+    paths:
+      - "client/package.json"
+      - "client/package-lock.json"
+      - "server/package.json"
+      - "server/package-lock.json"
+      - ".github/workflows/security-dependency-scan.yml"
+
+  # WEEKLY SCHEDULE — this is new!
+  # Why? A package safe today might get a CVE (vulnerability) tomorrow
+  # Even without pushing code, this catches newly discovered vulnerabilities
+  #
+  # Cron syntax: "minute hour day month weekday"
+  #   "0 9 * * 1" = At 09:00 AM, every Monday
+  #
+  #   ┌─── minute (0)
+  #   │ ┌─── hour (9 = 9 AM UTC)
+  #   │ │ ┌─── day of month (* = any)
+  #   │ │ │ ┌─── month (* = any)
+  #   │ │ │ │ ┌─── day of week (1 = Monday)
+  #   0 9 * * 1
+  schedule:
+    - cron: "0 9 * * 1"
+
+# ============================================================
+# JOBS
+# ============================================================
+jobs:
+  # -------------------------------------------
+  # JOB 1: Audit frontend dependencies
+  # -------------------------------------------
+  audit-frontend:
+    name: Audit Frontend Dependencies
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Install dependencies first (needed for npm audit to work properly)
+      - name: Install dependencies
+        working-directory: client
+        run: npm install
+
+      # Run npm audit
+      # --audit-level=high → only FAIL on high/critical severity
+      #   Severity levels: low → moderate → high → critical
+      #   We skip low/moderate to avoid too much noise
+      #   You can change to "moderate" or "critical" later
+      - name: Audit for vulnerabilities
+        working-directory: client
+        run: npm audit --audit-level=high
+
+  # -------------------------------------------
+  # JOB 2: Audit backend dependencies (runs in PARALLEL)
+  # -------------------------------------------
+  audit-backend:
+    name: Audit Backend Dependencies
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        working-directory: server
+        run: npm install
+
+      - name: Audit for vulnerabilities
+        working-directory: server
+        run: npm audit --audit-level=high
