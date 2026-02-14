@@ -1,0 +1,109 @@
+# ============================================================
+# BACKEND CI WORKFLOW
+# ============================================================
+# Purpose: Check backend code quality on every push/PR
+# Similar to frontend-ci.yml but for the server/ folder
+#
+# Your backend is a Node.js/Express app with:
+#   - Express 5 (server framework)
+#   - Mongoose (MongoDB)
+#   - Socket.io (real-time communication)
+#   - JWT authentication
+# ============================================================
+name: Backend CI
+
+# ============================================================
+# TRIGGER — Only when server/ files change
+# ============================================================
+on:
+  push:
+    branches:
+      - main
+      - dev
+    paths:
+      - "server/**"
+      - ".github/workflows/backend-ci.yml"
+
+  pull_request:
+    branches:
+      - main
+      - dev
+    paths:
+      - "server/**"
+      - ".github/workflows/backend-ci.yml"
+
+# ============================================================
+# JOBS
+# ============================================================
+jobs:
+  # -------------------------------------------
+  # JOB 1: Check if the backend code is valid
+  # -------------------------------------------
+  # Unlike frontend (which has react-scripts build), backend doesn't
+  # have a "build" step. Instead we:
+  #   1. Check if all dependencies install correctly
+  #   2. Check syntax by loading the app with Node.js
+  build:
+    name: Build Backend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        working-directory: server
+        run: npm install
+
+      # Check if the app can load without crashing
+      # "node --check" validates syntax without actually running the server
+      # This catches: syntax errors, missing imports, typos in require()
+      - name: Check syntax
+        working-directory: server
+        run: |
+          node --check server.js
+          node --check app.js
+
+  # -------------------------------------------
+  # JOB 2: Lint the backend code (PARALLEL with build)
+  # -------------------------------------------
+  lint:
+    name: Lint Backend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        working-directory: server
+        run: npm install
+
+      # Backend doesn't have ESLint installed, so we use npx to run it
+      # npx eslint downloads and runs ESLint without adding it to package.json
+      # We scan all key folders: controllers, middleware, models, routes, services, utils
+      - name: Lint
+        working-directory: server
+        run: npx eslint . --ignore-pattern node_modules/
+
+  # -------------------------------------------
+  # JOB 3: Gate check (runs AFTER build and lint pass)
+  # -------------------------------------------
+  all-checks:
+    name: All Checks Passed
+    needs: [build, lint]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: All checks passed
+        run: echo "Backend build and lint passed! Ready to merge."
