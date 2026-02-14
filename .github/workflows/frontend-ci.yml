@@ -1,0 +1,73 @@
+# ============================================================
+# WORKFLOW NAME
+# ============================================================
+# This is just a label — it shows up in the GitHub Actions tab
+name: Frontend CI
+
+# ============================================================
+# TRIGGER — "When should this workflow run?"
+# ============================================================
+on:
+  # Run when code is PUSHED to these branches
+  push:
+    branches:
+      - main
+      - dev
+    # ONLY run when files inside client/ folder change
+    # (no point running frontend CI if only backend changed)
+    paths:
+      - "client/**"
+
+  # Also run when a Pull Request targets these branches
+  pull_request:
+    branches:
+      - main
+      - dev
+    paths:
+      - "client/**"
+
+# ============================================================
+# JOBS — "What should happen?"
+# ============================================================
+jobs:
+  # -------------------------------------------
+  # JOB 1: Build the frontend
+  # -------------------------------------------
+  build:
+    # The name that shows in GitHub UI
+    name: Build Frontend
+
+    # Which machine to run on (GitHub gives you free Linux VMs)
+    runs-on: ubuntu-latest
+
+    # -------------------------------------------
+    # STEPS — "Do these things in order"
+    # -------------------------------------------
+    steps:
+      # STEP 1: Checkout the code
+      # Without this, the runner has an empty machine — no code!
+      # Think of it as: git clone your-repo
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # STEP 2: Set up Node.js
+      # The runner doesn't have Node by default, so we install it
+      # We pick version 20 (LTS = Long Term Support = stable)
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # STEP 3: Install dependencies
+      # Same as running "npm install" on your own machine
+      # "working-directory" tells it to run INSIDE the client/ folder
+      - name: Install dependencies
+        working-directory: client
+        run: npm install
+
+      # STEP 4: Build the project
+      # This runs "react-scripts build" which compiles your React app
+      # If there are any errors (import issues, syntax errors), it FAILS here
+      - name: Build
+        working-directory: client
+        run: npx react-scripts build
