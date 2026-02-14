@@ -1,0 +1,111 @@
+# ============================================================
+# SAST (Static Application Security Testing) WORKFLOW
+# ============================================================
+# Purpose: Find security vulnerabilities in YOUR code
+#          (SQL injection, XSS, path traversal, etc.)
+# Tool: CodeQL — GitHub's free, built-in SAST engine
+#
+# How CodeQL works:
+#   1. Builds a "database" of your code (understands how data flows)
+#   2. Runs security queries against it (hundreds of known vulnerability patterns)
+#   3. Reports findings in the GitHub Security tab
+#
+# WHY a separate workflow?
+#   - Different purpose: finds security bugs (not style or dependency issues)
+#   - Needs special permissions (security-events: write)
+#   - Scans ALL code (not just client/ or server/)
+#   - Results appear in GitHub's Security tab (not just Actions tab)
+# ============================================================
+name: Security — SAST (CodeQL)
+
+# ============================================================
+# TRIGGER
+# ============================================================
+on:
+  push:
+    branches:
+      - main
+      - dev
+
+  pull_request:
+    branches:
+      - main
+      - dev
+
+  # Weekly schedule — CodeQL adds new vulnerability rules regularly
+  # Running weekly catches issues that new rules detect in existing code
+  # "0 9 * * 3" = Every Wednesday at 9 AM UTC
+  schedule:
+    - cron: "0 9 * * 3"
+
+# ============================================================
+# PERMISSIONS
+# ============================================================
+# This is NEW — we haven't used this before!
+# CodeQL needs special permissions to:
+#   - Read your code (contents: read)
+#   - Post results to the Security tab (security-events: write)
+# Without these, CodeQL can scan but can't report findings
+permissions:
+  contents: read
+  security-events: write
+
+# ============================================================
+# JOBS
+# ============================================================
+jobs:
+  # -------------------------------------------
+  # JOB: CodeQL Analysis
+  # -------------------------------------------
+  codeql:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+
+    # "strategy.matrix" lets you run the SAME job for multiple languages
+    # If you later add Python or Java, just add them to the list
+    # For now, we only have JavaScript
+    strategy:
+      matrix:
+        language: ["javascript-typescript"]
+        # Other options: "python", "java-kotlin", "csharp", "go", "ruby"
+
+    steps:
+      # STEP 1: Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # STEP 2: Initialize CodeQL
+      # This sets up the CodeQL engine and tells it which language to scan
+      # It prepares to build a "code database" — a structured representation
+      # of your code that CodeQL can query for vulnerabilities
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          # "queries: security-extended" adds extra security checks
+          # beyond the default set — more thorough scanning
+          queries: security-extended
+
+      # STEP 3: Auto-build
+      # CodeQL automatically detects and builds your project
+      # For JavaScript, it analyzes the code without needing npm install
+      # (it understands JS/TS natively)
+      - name: Auto-build
+        uses: github/codeql-action/autobuild@v3
+
+      # STEP 4: Run CodeQL Analysis
+      # This is where the actual scanning happens
+      # CodeQL runs hundreds of security queries against your code:
+      #   - SQL Injection
+      #   - Cross-Site Scripting (XSS)
+      #   - Path Traversal
+      #   - Open Redirect
+      #   - Insecure Randomness
+      #   - Hardcoded Credentials
+      #   - Prototype Pollution
+      #   - Command Injection
+      #   - and many more...
+      #
+      # Results are uploaded to GitHub's Security tab automatically
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
