@@ -20,13 +20,12 @@ on:
       - ".github/workflows/frontend-ci.yml"
 
   # Also run when a Pull Request targets these branches
+  # NO paths filter on PRs — run ALL checks before merging
+  # (paths filter only on push to save resources on direct pushes)
   pull_request:
     branches:
       - main
       - dev
-    paths:
-      - "client/**"
-      - ".github/workflows/frontend-ci.yml"
 
 # ============================================================
 # JOBS — "What should happen?"

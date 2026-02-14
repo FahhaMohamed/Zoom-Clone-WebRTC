@@ -28,16 +28,11 @@ on:
       - "server/package-lock.json"
       - ".github/workflows/security-dependency-scan.yml"
 
+  # NO paths filter on PRs — run ALL checks before merging
   pull_request:
     branches:
       - main
       - dev
-    paths:
-      - "client/package.json"
-      - "client/package-lock.json"
-      - "server/package.json"
-      - "server/package-lock.json"
-      - ".github/workflows/security-dependency-scan.yml"
 
   # WEEKLY SCHEDULE — this is new!
   # Why? A package safe today might get a CVE (vulnerability) tomorrow
