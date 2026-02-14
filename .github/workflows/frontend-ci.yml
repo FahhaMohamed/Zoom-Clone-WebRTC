@@ -104,4 +104,4 @@ jobs:
       #   Remove --max-warnings 0 if you want warnings to pass
       - name: Lint
         working-directory: client
-        run: npx eslint src/
+        run: npx eslint src/ 
