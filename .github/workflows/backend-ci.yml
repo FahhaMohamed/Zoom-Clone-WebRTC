@@ -24,13 +24,11 @@ on:
       - "server/**"
       - ".github/workflows/backend-ci.yml"
 
+  # NO paths filter on PRs — run ALL checks before merging
   pull_request:
     branches:
       - main
       - dev
-    paths:
-      - "server/**"
-      - ".github/workflows/backend-ci.yml"
 
 # ============================================================
 # JOBS
