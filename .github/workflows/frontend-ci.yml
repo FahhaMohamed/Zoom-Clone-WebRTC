@@ -71,3 +71,37 @@ jobs:
       - name: Build
         working-directory: client
         run: npx react-scripts build
+
+  # -------------------------------------------
+  # JOB 2: Lint the frontend (runs in PARALLEL with build)
+  # -------------------------------------------
+  # No "needs:" here, so it starts at the SAME TIME as build
+  # Think: build checks "can the app compile?"
+  #        lint  checks "is the code clean?"
+  lint:
+    name: Lint Frontend
+
+    runs-on: ubuntu-latest
+
+    steps:
+      # Same first 3 steps — every job runs on a FRESH machine
+      # so each job needs to checkout code and install dependencies again
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        working-directory: client
+        run: npm install
+
+      # STEP 4: Run the linter
+      # npx eslint src/ → scans every file inside client/src/
+      # --max-warnings 0 → even warnings cause a FAIL (strict mode)
+      #   Remove --max-warnings 0 if you want warnings to pass
+      - name: Lint
+        working-directory: client
+        run: npx eslint src/
