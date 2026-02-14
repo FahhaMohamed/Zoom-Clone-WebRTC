@@ -83,8 +83,6 @@ jobs:
   lint:
     name: Lint Frontend
 
-    needs: build # This job will WAIT for "build" to finish before starting
-
     runs-on: ubuntu-latest
 
     steps:
@@ -108,4 +106,26 @@ jobs:
       #   Remove --max-warnings 0 if you want warnings to pass
       - name: Lint
         working-directory: client
-        run: npx eslint src/ 
+        run: npx eslint src/
+
+  # -------------------------------------------
+  # JOB 3: Gate check (runs AFTER build and lint pass)
+  # -------------------------------------------
+  # This is a SEQUENTIAL job — it uses "needs" to wait
+  # Common pattern: a final gate that only passes if everything else passed
+  # Useful for branch protection rules (you set ONE required check instead of many)
+  all-checks:
+    name: All Checks Passed
+
+    # "needs" = "don't start until these jobs finish successfully"
+    # If build OR lint fails → this job is SKIPPED → shows ❌ on the PR
+    needs: [build, lint]
+
+    runs-on: ubuntu-latest
+
+    steps:
+      # This job doesn't need to do real work
+      # It exists just to be a single "gateway" status check
+      # If it runs, it means everything above passed ✅
+      - name: All checks passed
+        run: echo "Build and Lint passed! Ready to merge."
