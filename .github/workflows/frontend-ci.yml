@@ -14,9 +14,10 @@ on:
       - main
       - dev
     # ONLY run when files inside client/ folder change
-    # (no point running frontend CI if only backend changed)
+    # OR when the workflow file itself changes
     paths:
       - "client/**"
+      - ".github/workflows/frontend-ci.yml"
 
   # Also run when a Pull Request targets these branches
   pull_request:
@@ -25,6 +26,7 @@ on:
       - dev
     paths:
       - "client/**"
+      - ".github/workflows/frontend-ci.yml"
 
 # ============================================================
 # JOBS — "What should happen?"
